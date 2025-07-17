@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>短视频解析</title>
+    <style>
+        body {
+            background-color: #2E3440;
+            color: #D8DEE9;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background: #3B4252;
+            padding: 20px;
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #4C566A;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        input, button {
+            background-color: #8FBCBB;
+            color: #2E3440;
+            border: none;
+            padding: 10px 20px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #D8DEE9;
+            color: #2E3440;
+        }
+        video {
+            width: 100%;
+            max-width: 800px;
+            margin-top: 20px;
+        }
+        #status {
+            color: #ECEFF4;
+            margin-top: 10px;
+        }
+        .platforms {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #D8DEE9;
+        }
+        .platforms ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .platforms li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>短视频解析工具</h1>
+        <p>支持解析抖音、快手、哔哩哔哩等主流短视频平台</p>
+    </header>
+
+    <div class="container">
+        <h2>请输入视频链接：</h2>
+        <input type="text" id="videoUrl" placeholder="输入视频URL或包含URL的文本">
+        <button onclick="loadVideo()">加载视频</button>
+        <button onclick="saveVideo()">保存视频</button>
+
+        <video id="videoPlayer" controls style="margin-top: 20px;">
+            您的浏览器不支持 video 标签。
+        </video>
+
+        <p id="status"></p>
+    </div>
+
+
+    <script>
+        let downloadUrl = '';
+
+        function extractUrl(text) {
+            const urlPattern = /(https?:\/\/[^\s"<>]+)/g;
+            const matches = text.match(urlPattern);
+            return matches ? matches[0] : '';
+        }
+
+        async function loadVideo() {
+            let urlInput = document.getElementById('videoUrl').value.trim();
+            urlInput = extractUrl(urlInput);
+            if (!urlInput) {
+                alert('请输入有效的视频URL或包含URL的文本');
+                return;
+            }
+
+            document.getElementById('status').innerText = '正在解析视频...';
+
+            // 请使用自己的域名，确保flask在服务器中运行，这里默认本地执行127.0.0.1
+            const apiUrl = `http://127.0.0.1/api/parse?url=${encodeURIComponent(urlInput)}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'GET',
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.video_url) {
+                    const videoUrl = data.video_url;
+
+                    // 获取 video 元素并设置视频源
+                    const videoElement = document.getElementById('videoPlayer');
+                    videoElement.src = videoUrl;
+                    videoElement.load(); // 加载新视频
+                    videoElement.play();
+
+                    downloadUrl = videoUrl; // 更新下载链接
+                    document.getElementById('status').innerText = '视频加载成功！';
+                } else {
+                    document.getElementById('status').innerText = '无法解析视频';
+                }
+            } catch (error) {
+                document.getElementById('status').innerText = '请求失败，请检查网络或URL';
+                console.error(error);
+            }
+        }
+
+        async function saveVideo() {
+            if (!downloadUrl) {
+                alert('请先加载视频');
+                return;
+            }
+
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = 'video.mp4';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
